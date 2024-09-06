@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Interface</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        #chatbox {
+            width: 80%;
+            max-width: 500px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        #messages {
+            height: 400px;
+            padding: 20px;
+            overflow-y: scroll;
+            border-bottom: 1px solid #ddd;
+        }
+        .message {
+            margin-bottom: 15px;
+        }
+        .message.user {
+            text-align: right;
+        }
+        .message p {
+            display: inline-block;
+            padding: 10px 15px;
+            border-radius: 20px;
+            max-width: 70%;
+        }
+        .message.user p {
+            background-color: #007bff;
+            color: white;
+        }
+        .message.bot p {
+            background-color: #f0f0f0;
+        }
+        #inputArea {
+            padding: 15px;
+            display: flex;
+        }
+        #userInput {
+            flex: 1;
+            padding: 10px;
+            border-radius: 20px;
+            border: 1px solid #ddd;
+        }
+        #sendBtn {
+            margin-left: 10px;
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+        }
+        #sendBtn:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div id="chatbox">
+        <div id="messages"></div>
+        <div id="inputArea">
+            <input type="text" id="userInput" placeholder="Type a message..." autocomplete="off">
+            <button id="sendBtn"><i class="fas fa-paper-plane"></i></button>
+        </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            var userName = prompt("Please enter your name:");
+            if (!userName) {
+                userName = "Guest"; // 如果没有输入用户名，设置一个默认的用户名
+            }
+
+            // 在用户输入用户名后立即发送请求以检查用户状态
+            $.ajax({
+                url: '/check_user',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    user_name: userName
+                }),
+                success: function(response) {
+                    addMessage(response.message, 'bot');
+                },
+                error: function(xhr, status, error) {
+                    console.error("AJAX Error:", status, error);
+                }
+            });
+
+            function addMessage(message, user = 'bot') {
+                var messageDiv = $('<div>').addClass('message').addClass(user);
+                var messageContent = $('<p>').text(message);
+                messageDiv.append(messageContent);
+                $('#messages').append(messageDiv);
+                $('#messages').scrollTop($('#messages')[0].scrollHeight);
+            }
+
+            $('#sendBtn').click(function() {
+                var userInput = $('#userInput').val();
+                if (userInput.trim() === '') return;
+                addMessage(userInput, 'user');
+                $('#userInput').val('');
+
+                $.ajax({
+                    url: '/chat',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        user_name: userName,
+                        user_input: userInput
+                    }),
+                    success: function(response) {
+                        console.log("Response received:", response);
+                        if (response.message) {
+                            addMessage(response.message, 'bot');
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("AJAX Error:", status, error);
+                    }
+                });
+            });
+
+            $('#userInput').keypress(function(e) {
+                if (e.which === 13) {
+                    $('#sendBtn').click();
+                }
+            });
+        });
+    </script>
+</body>
+</html>
